@@ -4,7 +4,7 @@
 
 # Dependabot
 
-Welcome to the public home of Dependabot. This repository serves 2 purposes:
+Welcome to the forked public home of Dependabot. This repository serves 2 purposes:
 
 1. It houses the source code for Dependabot Core, which is the heart of [Dependabot][dependabot]. Dependabot Core handles the logic for updating dependencies on GitHub (including GitHub Enterprise), GitLab, and Azure DevOps. If you want to host your own automated dependency update bot then this repo should give you the tools you need. A reference implementation is available [here][dependabot-script].
 2. It is the public issue tracker for all things Dependabot, replacing the now-archived [feedback](https://github.com/dependabot/feedback/) repository.
