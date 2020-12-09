@@ -221,3 +221,5 @@ recurring payments from Europe, check them out.
 [bump]: https://github.com/gocardless/bump
 [bump-core]: https://github.com/gocardless/bump-core
 [gocardless]: https://gocardless.com
+## Why I foked this
+I figure for the OS, I'll be having self hosted git repositories, so they'll need security updates.
