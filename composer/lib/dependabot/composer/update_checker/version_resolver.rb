@@ -8,6 +8,8 @@ require "dependabot/composer/version"
 require "dependabot/composer/requirement"
 require "dependabot/composer/native_helpers"
 require "dependabot/composer/file_parser"
+require "dependabot/composer/helpers"
+
 module Dependabot
   module Composer
     class UpdateChecker
@@ -29,7 +31,8 @@ module Dependabot
         MISSING_IMPLICIT_PLATFORM_REQ_REGEX =
           %r{
             (?<!with|for|by)\sext\-[^\s\/]+\s.*?\s(?=->)|
-            (?<=requires\s)php(?:\-[^\s\/]+)?\s.*?\s(?=->)
+            (?<=requires\s)php(?:\-[^\s\/]+)?\s.*?\s(?=->)| # composer v1
+            (?<=require\s)php(?:\-[^\s\/]+)?\s.*?\s(?=->) # composer v2
           }x.freeze
         VERSION_REGEX = /[0-9]+(?:\.[A-Za-z0-9\-_]+)*/.freeze
         SOURCE_TIMED_OUT_REGEX =
@@ -156,7 +159,7 @@ module Dependabot
           json = JSON.parse(content)
 
           composer_platform_extensions.each do |extension, requirements|
-            raise "No matching version for #{requirements}!" unless version_for_reqs(requirements)
+            next unless version_for_reqs(requirements)
 
             json["config"] ||= {}
             json["config"]["platform"] ||= {}
@@ -251,8 +254,7 @@ module Dependabot
               error.message.match(/Failed to clone (?<url>.*?) via/).
               named_captures.fetch("url")
             raise Dependabot::GitDependenciesNotReachable, dependency_url
-          elsif error.message.start_with?("Could not parse version") ||
-                error.message.include?("does not allow connections to http://")
+          elsif unresolvable_error?(error)
             raise Dependabot::DependencyFileNotResolvable, sanitized_message
           elsif error.message.match?(MISSING_EXPLICIT_PLATFORM_REQ_REGEX)
             # These errors occur when platform requirements declared explicitly
@@ -343,6 +345,13 @@ module Dependabot
         # rubocop:enable Metrics/CyclomaticComplexity
         # rubocop:enable Metrics/MethodLength
 
+        def unresolvable_error?(error)
+          error.message.start_with?("Could not parse version") ||
+            error.message.include?("does not allow connections to http://") ||
+            error.message.match?(/The `url` supplied for the path .* does not exist/) ||
+            error.message.start_with?("Invalid version string")
+        end
+
         def library?
           parsed_composer_file["type"] == "library"
         end
@@ -428,7 +437,12 @@ module Dependabot
         end
 
         def php_helper_path
-          NativeHelpers.composer_helper_path
+          NativeHelpers.composer_helper_path(composer_version: composer_version)
+        end
+
+        def composer_version
+          parsed_lockfile_or_nil = lockfile ? parsed_lockfile : nil
+          @composer_version ||= Helpers.composer_version(parsed_composer_file, parsed_lockfile_or_nil)
         end
 
         def initial_platform
